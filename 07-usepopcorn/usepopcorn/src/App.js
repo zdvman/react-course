@@ -233,7 +233,7 @@ export default function App() {
   const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [query, setQuery] = useState('inception');
+  const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
   function handleSetectMovie(newId) {
@@ -253,14 +253,14 @@ export default function App() {
   }
 
   useEffect(() => {
-    // const controller = new AbortController();
+    const controller = new AbortController();
     const fetchMovies = async () => {
       try {
         setIsLoading(true);
         setError('');
         const res = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`
-          // { signal: controller.signal }
+          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
+          { signal: controller.signal }
         );
         if (!res.ok) throw new Error('Failed to fetch movies');
         const data = await res.json();
@@ -269,9 +269,12 @@ export default function App() {
             `No movie with the name "${query}" found, please try another movie name!`
           );
         setMovies(data.Search || []);
+        setError('');
       } catch (error) {
-        console.error('Error fetching movies:', error);
-        setError(error.message);
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching movies:', error);
+          setError(error.message);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -281,10 +284,9 @@ export default function App() {
       setMovies([]);
       return;
     }
+    handleCloseMovie();
     fetchMovies();
-    // return () => {
-    //   console.log('CleanUp function');
-    // };
+    return () => controller.abort();
   }, [query]);
 
   return (
@@ -333,6 +335,7 @@ function Loader() {
 function ErrorMessage({ children }) {
   return <p className='error'>{children}</p>;
 }
+
 function MovieDetails({
   selectedId,
   onCloseMovie,
@@ -378,12 +381,20 @@ function MovieDetails({
   }
 
   useEffect(() => {
+    if (!title) return;
+    document.title = `MOVIE: ${title}`;
+    return () => (document.title = 'usePopcorn');
+  }, [title]);
+
+  useEffect(() => {
+    const controller = new AbortController();
     const fetchMovie = async () => {
       try {
         setIsLoading(true);
         setError('');
         const res = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`
+          `http://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`,
+          { signal: controller.signal }
         );
         if (!res.ok) throw new Error('Failed to fetch movie');
         const data = await res.json();
@@ -393,15 +404,37 @@ function MovieDetails({
           );
         // console.log(data);
         setMovie(data);
+        setError('');
       } catch (error) {
-        console.error(error);
-        setError(error.message);
+        if (error.name !== 'AbortError') {
+          console.error(error);
+          setError(error.message);
+        }
       } finally {
         setIsLoading(false);
       }
     };
     fetchMovie();
+    return () => controller.abort();
   }, [selectedId]);
+
+  useEffect(() => {
+    // Function to handle the key press
+    const handleKeyDown = (event) => {
+      if (event.code === 'Escape') {
+        onCloseMovie();
+      }
+    };
+
+    // Add the event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup: Remove the event listener when the component unmounts
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onCloseMovie]); // Dependency array includes onCloseMovie if it might change
+
   return (
     <div className='details'>
       {isLoading && <Loader />}
