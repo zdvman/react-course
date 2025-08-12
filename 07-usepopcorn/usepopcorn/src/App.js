@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import StarRating from './StarRatig';
 
 const average = (arr) =>
@@ -7,6 +7,27 @@ const average = (arr) =>
   ) / 100;
 
 function Search({ query, setQuery }) {
+  const inputEl = useRef(null);
+
+  useEffect(() => {
+    const callback = (e) => {
+      if (document.activeElement === inputEl.current) return;
+      if (e.code === 'Enter') {
+        inputEl.current.focus();
+        setQuery('');
+      }
+    };
+    document.addEventListener('keydown', callback);
+    console.log(inputEl.current);
+    return () => document.removeEventListener('keydown', callback);
+  }, [setQuery]);
+
+  /*  useEffect(() => {
+    const el = document.querySelector('.search');
+    console.log(el);
+    el.focus();
+  }, []); */
+
   return (
     <input
       className='search'
@@ -14,6 +35,7 @@ function Search({ query, setQuery }) {
       placeholder='Search movies...'
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      ref={inputEl}
     />
   );
 }
@@ -168,7 +190,13 @@ const KEY = '76d1ca77';
 
 export default function App() {
   const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState([]);
+  // const [watched, setWatched] = useState(
+  //   JSON.parse(localStorage.getItem('movies')) || []
+  // );
+  const [watched, setWatched] = useState(() => {
+    return JSON.parse(localStorage.getItem('movies')) || [];
+  });
+  // const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
@@ -183,12 +211,20 @@ export default function App() {
   }
 
   function handleAddWatchedMovie(movie) {
-    setWatched((prev) => [...prev, movie]);
+    setWatched((prev) => {
+      const watched = [...prev, movie];
+      // localStorage.setItem('movies', JSON.stringify(watched));
+      return watched;
+    });
   }
 
   function handleDeleteWatched(id) {
     setWatched((prev) => prev.filter((el) => el.imdbID !== id));
   }
+
+  useEffect(() => {
+    localStorage.setItem('movies', JSON.stringify(watched));
+  }, [watched]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -284,11 +320,19 @@ function MovieDetails({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [userRating, setUserRating] = useState(0);
+  const countRef = useRef(0);
+
+  useEffect(() => {
+    if (userRating) countRef.current += 1;
+  }, [userRating]);
 
   const isWatched = watched.map((movie) => movie.imdbID).includes(selectedId);
   const watchedUserRating = watched.find(
     (movie) => movie.imdbID === selectedId
   )?.userRating;
+
+  // const isTop = imdbRating > 8;
+  // console.log(isTop);
 
   const {
     Title: title,
@@ -305,6 +349,10 @@ function MovieDetails({
 
   /* eslint-disable */
   // if (imdbRating > 8) [isTop, setIsTop] = useState(true);
+  // const isTop = imdbRating > 8;
+  // console.log(isTop);
+
+  // const [averageRating, setAverageRating] = useState(0);
 
   function handleAdd() {
     if (isWatched) return;
@@ -316,10 +364,19 @@ function MovieDetails({
       imdbRating: Number(imdbRating),
       runtime: Number(runtime.split(' ').at(0)),
       userRating,
+      countRatingDecisions: countRef.current,
     };
     onAddWatchedMovie(newWatchedMovie);
     onCloseMovie();
+
+    // setAverageRating(Number(imdbRating));
+    // setAverageRating((avgRating) => (avgRating + userRating) / 2);
   }
+  // const [isTop, setIsTop] = useState(imdbRating > 8);
+  // console.log(isTop);
+  // useEffect(() => {
+  //   setIsTop(imdbRating > 8);
+  // }, [imdbRating]);
 
   useEffect(() => {
     if (!title) return;
@@ -398,6 +455,7 @@ function MovieDetails({
               </p>
             </div>
           </header>
+          {/* <p>{averageRating}</p> */}
           <section>
             <div className='rating'>
               {!isWatched ? (
