@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import StarRating from './StarRatig';
+import { useMovies } from './useMovies';
+import { useLocalStorageState } from './useLocalStorageState';
+import { useKey } from './useKey';
 
 const average = (arr) =>
   Math.round(
@@ -9,24 +12,11 @@ const average = (arr) =>
 function Search({ query, setQuery }) {
   const inputEl = useRef(null);
 
-  useEffect(() => {
-    const callback = (e) => {
-      if (document.activeElement === inputEl.current) return;
-      if (e.code === 'Enter') {
-        inputEl.current.focus();
-        setQuery('');
-      }
-    };
-    document.addEventListener('keydown', callback);
-    console.log(inputEl.current);
-    return () => document.removeEventListener('keydown', callback);
-  }, [setQuery]);
-
-  /*  useEffect(() => {
-    const el = document.querySelector('.search');
-    console.log(el);
-    el.focus();
-  }, []); */
+  useKey('Enter', () => {
+    if (document.activeElement === inputEl.current) return;
+    inputEl.current.focus();
+    setQuery('');
+  });
 
   return (
     <input
@@ -189,18 +179,10 @@ function Box({ children }) {
 const KEY = '76d1ca77';
 
 export default function App() {
-  const [movies, setMovies] = useState([]);
-  // const [watched, setWatched] = useState(
-  //   JSON.parse(localStorage.getItem('movies')) || []
-  // );
-  const [watched, setWatched] = useState(() => {
-    return JSON.parse(localStorage.getItem('movies')) || [];
-  });
-  // const [watched, setWatched] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const { movies, isLoading, error } = useMovies(query, handleCloseMovie);
+  const [watched, setWatched] = useLocalStorageState([], 'watched');
 
   function handleSetectMovie(newId) {
     setSelectedId((prev) => (newId === prev ? null : newId));
@@ -211,57 +193,12 @@ export default function App() {
   }
 
   function handleAddWatchedMovie(movie) {
-    setWatched((prev) => {
-      const watched = [...prev, movie];
-      // localStorage.setItem('movies', JSON.stringify(watched));
-      return watched;
-    });
+    setWatched((prev) => [...prev, movie]);
   }
 
   function handleDeleteWatched(id) {
     setWatched((prev) => prev.filter((el) => el.imdbID !== id));
   }
-
-  useEffect(() => {
-    localStorage.setItem('movies', JSON.stringify(watched));
-  }, [watched]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchMovies = async () => {
-      try {
-        setIsLoading(true);
-        setError('');
-        const res = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
-          { signal: controller.signal }
-        );
-        if (!res.ok) throw new Error('Failed to fetch movies');
-        const data = await res.json();
-        if (data.Response === 'False')
-          throw new Error(
-            `No movie with the name "${query}" found, please try another movie name!`
-          );
-        setMovies(data.Search || []);
-        setError('');
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error fetching movies:', error);
-          setError(error.message);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    if (query.length < 3) {
-      setError('');
-      setMovies([]);
-      return;
-    }
-    handleCloseMovie();
-    fetchMovies();
-    return () => controller.abort();
-  }, [query]);
 
   return (
     <>
@@ -416,22 +353,7 @@ function MovieDetails({
     return () => controller.abort();
   }, [selectedId]);
 
-  useEffect(() => {
-    // Function to handle the key press
-    const handleKeyDown = (event) => {
-      if (event.code === 'Escape') {
-        onCloseMovie();
-      }
-    };
-
-    // Add the event listener
-    document.addEventListener('keydown', handleKeyDown);
-
-    // Cleanup: Remove the event listener when the component unmounts
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onCloseMovie]); // Dependency array includes onCloseMovie if it might change
+  useKey('Escape', onCloseMovie);
 
   return (
     <div className='details'>
