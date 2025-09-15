@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import styles from './CityItem.module.css';
 import ReactCountryFlag from 'react-country-flag';
 
@@ -19,19 +20,29 @@ function emojiToCountryCode(emoji) {
 }
 
 function CityItem({ city }) {
-  const { cityName, country, emoji, date, notes, position, id } = city;
+  const {
+    cityName,
+    country,
+    emoji,
+    date,
+    notes,
+    id,
+    position: { lat, lng },
+  } = city;
   const countryCode = emojiToCountryCode(emoji);
   return (
-    <li className={styles.cityItem}>
-      <ReactCountryFlag
-        countryCode={countryCode.toUpperCase()}
-        svg
-        className={styles.emoji}
-        aria-label={country}
-      />
-      <h3 className={styles.name}>{cityName}</h3>
-      <time className={styles.date}>{formatDate(date)}</time>
-      <button className={styles.deleteBtn}>&times;</button>
+    <li>
+      <Link className={styles.cityItem} to={`${id}?lat=${lat}&lng=${lng}`}>
+        <ReactCountryFlag
+          countryCode={countryCode.toUpperCase()}
+          svg
+          className={styles.emoji}
+          aria-label={country}
+        />
+        <h3 className={styles.name}>{cityName}</h3>
+        <time className={styles.date}>{formatDate(date)}</time>
+        <button className={styles.deleteBtn}>&times;</button>
+      </Link>
     </li>
   );
 }
