@@ -1,12 +1,37 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+
 import Product from './pages/Product';
 import Pricing from './pages/Pricing';
 import Homepage from './pages/Homepage';
 import PageNotFound from './pages/PageNotFound';
 import AppLayout from './pages/AppLayout';
 import Login from './pages/Login';
+import CitiList from './components/CityList';
+import CountryList from './components/CountryList';
+
+const BASE_URL = 'http://localhost:8000';
 
 function App() {
+  const [cities, setCities] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`${BASE_URL}/cities`);
+        // if (!res.ok) throw new Error('Server response error');
+        const data = await res.json();
+        console.log(data);
+        setCities(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCities();
+  }, []);
   return (
     <BrowserRouter
       future={{
@@ -20,9 +45,18 @@ function App() {
         <Route path='pricing' element={<Pricing />} />
         <Route path='login' element={<Login />} />
         <Route path='app' element={<AppLayout />}>
-          <Route index element={<p>List of cities</p>} />
-          <Route path='cities' element={<p>List of cities</p>} />
-          <Route path='countries' element={<p>Countires</p>} />
+          <Route
+            index
+            element={<CitiList cities={cities} isLoading={isLoading} />}
+          />
+          <Route
+            path='cities'
+            element={<CitiList cities={cities} isLoading={isLoading} />}
+          />
+          <Route
+            path='countries'
+            element={<CountryList cities={cities} isLoading={isLoading} />}
+          />
           <Route path='form' element={<p>Form</p>} />
         </Route>
         <Route path='*' element={<PageNotFound />} />
