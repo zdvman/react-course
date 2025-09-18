@@ -2,8 +2,10 @@ import CountryItem from './CountryItem';
 import styles from './CountryList.module.css';
 import Spinner from './Spinner';
 import Message from './Message';
+import { useCities } from '../contexts/CitiesContext';
 
-function CitiList({ cities, isLoading }) {
+function CityList() {
+  const { cities, isLoading } = useCities();
   if (isLoading) return <Spinner />;
 
   if (!cities.length)
@@ -21,26 +23,27 @@ function CitiList({ cities, isLoading }) {
   // );
 
   // Step 1: Original array
-  console.log('Step 1: cities array', cities);
 
   // Step 2: Map each city to a [country, {country, emoji}] pair
-  const pairs = cities.map((city) => [
-    city.country,
-    { country: city.country, emoji: city.emoji },
-  ]);
-  console.log('Step 2: pairs', pairs);
+  // const pairs = cities.map((city) => [
+  //   city.country,
+  //   { country: city.country, emoji: city.emoji },
+  // ]);
 
-  // Step 3: Create a Map from the pairs (unique by country)
-  const countryMap = new Map(pairs);
-  console.log('Step 3: countryMap', countryMap);
+  // // Step 3: Create a Map from the pairs (unique by country)
+  // const countryMap = new Map(pairs);
 
-  // Step 4: Get the values from the Map (unique country-emoji objects)
-  const valuesIterable = countryMap.values();
-  console.log('Step 4: valuesIterable', Array.from(valuesIterable)); // Convert to array for display
+  // // Step 4: Get the values from the Map (unique country-emoji objects)
+  // const valuesIterable = countryMap.values();
 
-  // Step 5: Convert the iterable to an array
-  const uniqueCountries = Array.from(countryMap.values());
-  console.log('Step 5: uniqueCountries', uniqueCountries);
+  // // Step 5: Convert the iterable to an array
+  // const uniqueCountries = Array.from(countryMap.values());
+
+  const uniqueCountries = cities.reduce((arr, city) => {
+    if (!arr.map((el) => el.country).includes(city.country))
+      return [...arr, { country: city.country, emoji: city.emoji }];
+    else return arr;
+  }, []);
 
   return (
     <ul className={styles.countryList}>
@@ -51,4 +54,4 @@ function CitiList({ cities, isLoading }) {
   );
 }
 
-export default CitiList;
+export default CityList;
